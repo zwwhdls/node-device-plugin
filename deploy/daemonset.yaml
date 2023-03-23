@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hdls-device-plugin
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/component: hdls-device-plugin
+spec:
+  selector:
+    matchLabels:
+      app: hdls-device-plugin
+  template:
+    metadata:
+      labels:
+        app: hdls-device-plugin
+    spec:
+      hostNetwork: true
+      containers:
+        - image: zwwhdls/hdls-device-plugin:v0.1
+          imagePullPolicy: Always
+          name: hdls-device-plugin
+          command: ["node-device-plugin", "--fuse_mounts_allowed", "5000"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: dev-dir
+              mountPath: /dev
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: dev-dir
+          hostPath:
+            path: /dev
