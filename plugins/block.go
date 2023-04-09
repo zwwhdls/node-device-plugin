@@ -29,6 +29,7 @@ import (
 
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
+	//pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -45,10 +46,15 @@ type BlockDevicePlugin struct {
 	devs   []*pluginapi.Device
 	socket string
 
+	stop   chan interface{}
+	health chan *pluginapi.Device
+
 	server *grpc.Server
 }
 
-func NewBlockDevicePlugin() (*BlockDevicePlugin, error) {
+var _ DevicePlugin = &BlockDevicePlugin{}
+
+func NewBlockDevicePlugin() (DevicePlugin, error) {
 	devices, err := getBlockDevices(context.Background())
 	if err != nil {
 		return nil, err
@@ -56,6 +62,8 @@ func NewBlockDevicePlugin() (*BlockDevicePlugin, error) {
 	return &BlockDevicePlugin{
 		socket: blockServerSock,
 		devs:   devices,
+		stop:   make(chan interface{}),
+		health: make(chan *pluginapi.Device),
 	}, err
 }
 
@@ -82,6 +90,7 @@ func (m *BlockDevicePlugin) Start() error {
 		return err
 	}
 	conn.Close()
+	go m.healthcheck()
 
 	return nil
 }
@@ -94,6 +103,7 @@ func (m *BlockDevicePlugin) Stop() error {
 
 	m.server.Stop()
 	m.server = nil
+	close(m.stop)
 
 	return m.cleanup()
 }
@@ -122,7 +132,17 @@ func (m *BlockDevicePlugin) Register(kubeletEndpoint, resourceName string) error
 
 // ListAndWatch lists devices and update that list according to the health status
 func (m *BlockDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	return s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+	s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+
+	for {
+		select {
+		case <-m.stop:
+			return nil
+		case d := <-m.health:
+			d.Health = pluginapi.Unhealthy
+			s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+		}
+	}
 }
 
 // Allocate which return list of devices.
@@ -171,6 +191,12 @@ func (m *BlockDevicePlugin) cleanup() error {
 	}
 
 	return nil
+}
+
+func (m *BlockDevicePlugin) healthcheck() {
+	for range m.stop {
+		return
+	}
 }
 
 // Serve starts the gRPC server and register the device plugin to Kubelet

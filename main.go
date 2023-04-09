@@ -30,10 +30,12 @@ import (
 
 var (
 	mountsAllowed = 5000
+	device        = "fuse"
 )
 
 func main() {
 	flag.IntVar(&mountsAllowed, "fuse_mounts_allowed", 5000, "maximum times the fuse device can be mounted")
+	flag.StringVar(&device, "device", "fuse", "enable fuse or block device plugin")
 	flag.Parse()
 
 	log.Println("Starting")
@@ -51,36 +53,25 @@ func main() {
 	sigs := newOSWatcher(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	restart := true
-	var fuseDevicePlugin *plugins.FuseDevicePlugin
-	var blockDevicePlugin *plugins.BlockDevicePlugin
+	var devicePlugin plugins.DevicePlugin
 
 L:
 	for {
-		if blockDevicePlugin != nil {
-			blockDevicePlugin.Stop()
-		}
-		if fuseDevicePlugin != nil {
-			fuseDevicePlugin.Stop()
-		}
 		if restart {
-			if blockDevicePlugin != nil {
-				blockDevicePlugin.Stop()
-			}
-			if fuseDevicePlugin != nil {
-				fuseDevicePlugin.Stop()
+			if devicePlugin != nil {
+				devicePlugin.Stop()
 			}
 
-			fuseDevicePlugin = plugins.NewFuseDevicePlugin(mountsAllowed)
-			if err := fuseDevicePlugin.Serve(); err != nil {
-				log.Println("Could not contact Kubelet, retrying. Did you enable the device plugin feature gate?")
+			if device == "fuse" {
+				devicePlugin = plugins.NewFuseDevicePlugin(mountsAllowed)
 			} else {
-				restart = false
+				devicePlugin, err = plugins.NewBlockDevicePlugin()
+				if err != nil {
+					log.Fatalln(err)
+				}
 			}
-			blockDevicePlugin, err = plugins.NewBlockDevicePlugin()
-			if err != nil {
-				log.Fatalln(err)
-			}
-			if err := blockDevicePlugin.Serve(); err != nil {
+
+			if err := devicePlugin.Serve(); err != nil {
 				log.Println("Could not contact Kubelet, retrying. Did you enable the device plugin feature gate?")
 			} else {
 				restart = false
@@ -101,10 +92,10 @@ L:
 			switch s {
 			case syscall.SIGHUP:
 				log.Println("Received SIGHUP, restarting.")
+				restart = true
 			default:
 				log.Printf("Received signal \"%v\", shutting down.", s)
-				fuseDevicePlugin.Stop()
-				blockDevicePlugin.Stop()
+				devicePlugin.Stop()
 				break L
 			}
 		}

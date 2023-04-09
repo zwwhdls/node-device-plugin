@@ -31,7 +31,7 @@ import (
 
 const (
 	fuseResourceName = "hdls.me/fuse"
-	fuseServerSock   = pluginapi.DevicePluginPath + "fuse.sock"
+	FuseServerSock   = pluginapi.DevicePluginPath + "fuse.sock"
 )
 
 // FuseDevicePlugin implements the Kubernetes device plugin API
@@ -39,13 +39,18 @@ type FuseDevicePlugin struct {
 	devs   []*pluginapi.Device
 	socket string
 
+	stop chan interface{}
+
 	server *grpc.Server
 }
 
-func NewFuseDevicePlugin(number int) *FuseDevicePlugin {
+var _ DevicePlugin = &FuseDevicePlugin{}
+
+func NewFuseDevicePlugin(number int) DevicePlugin {
 	return &FuseDevicePlugin{
 		devs:   getFUSEDevices(number),
-		socket: fuseServerSock,
+		socket: FuseServerSock,
+		stop:   make(chan interface{}),
 	}
 }
 
@@ -84,6 +89,7 @@ func (m *FuseDevicePlugin) Stop() error {
 
 	m.server.Stop()
 	m.server = nil
+	close(m.stop)
 
 	return m.cleanup()
 }
@@ -112,7 +118,14 @@ func (m *FuseDevicePlugin) Register(kubeletEndpoint, resourceName string) error 
 
 // ListAndWatch lists devices and update that list according to the health status
 func (m *FuseDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	return s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+	s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+
+	for {
+		select {
+		case <-m.stop:
+			return nil
+		}
+	}
 }
 
 // Allocate which return list of devices.
