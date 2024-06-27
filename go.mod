@@ -1,4 +1,4 @@
-module node-device-plugin
+module github.com/zwwhdls/node-device-plugin
 
 go 1.19
 

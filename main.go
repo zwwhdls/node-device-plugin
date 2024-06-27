@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
-	"node-device-plugin/plugins"
+	"github.com/zwwhdls/node-device-plugin/plugins"
 )
 
 var (

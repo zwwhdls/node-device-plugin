@@ -41,6 +41,8 @@ func (v Version) Version() string {
 }
 
 func VersionInfo() Version {
+	fmt.Printf("gitTag: %s", gitTag)
+	fmt.Printf("gitCommit: %s", gitCommit)
 	versionInfo := Version{}
 	if strings.HasPrefix(gitTag, "v") {
 		gitTag = strings.TrimPrefix(gitTag, "v")
