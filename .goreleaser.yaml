@@ -19,7 +19,6 @@ before:
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
-  - REVISIONDATE={{ .Env.REVISIONDATE }}
 
 builds:
   - id: plugin-darwin-amd64
