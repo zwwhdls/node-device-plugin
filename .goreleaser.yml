@@ -2,7 +2,6 @@ project_name: node-device-plugin
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
-  - REVISIONDATE={{ .Env.REVISIONDATE }}
 before:
   hooks:
     - go mod download
