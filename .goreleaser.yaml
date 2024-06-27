@@ -22,28 +22,28 @@ env:
 
 builds:
   - id: plugin-darwin-amd64
-    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.getTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
     main: .
     goos:
       - darwin
     goarch:
       - amd64
   - id: plugin-darwin-arm64
-    ldflags: -s -w -X github.com/zwwhdls/node-device-plugin/version.gitCommit={{.ShortCommit}} -X github.com/zwwhdls/node-device-plugin/version.getTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
     main: .
     goos:
       - darwin
     goarch:
       - arm64
   - id: plugin-linux-amd64
-    ldflags: -s -w -X github.com/zwwhdls/node-device-plugin/version.gitCommit={{.ShortCommit}} -X github.com/zwwhdls/node-device-plugin/version.getTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
     main: .
     goos:
       - linux
     goarch:
       - amd64
   - id: plugin-linux-arm64
-    ldflags: -s -w -X github.com/zwwhdls/node-device-plugin/version.gitCommit={{.ShortCommit}} -X github.com/zwwhdls/node-device-plugin/version.getTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
     main: .
     goos:
       - linux
