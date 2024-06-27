@@ -17,12 +17,12 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/cobra"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"node-device-plugin/plugins"
@@ -31,73 +31,87 @@ import (
 var (
 	mountsAllowed = 5000
 	device        = "fuse"
+	version       = ""
 )
 
-func main() {
-	flag.IntVar(&mountsAllowed, "fuse_mounts_allowed", 5000, "maximum times the fuse device can be mounted")
-	flag.StringVar(&device, "device", "fuse", "enable fuse or block device plugin")
-	flag.Parse()
+var rootCmd = &cobra.Command{
+	Use: "node-device-plugin",
+}
 
-	log.Println("Starting")
-	defer func() { log.Println("Stopped:") }()
+func init() {
+	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().IntVar(&mountsAllowed, "fuse_mounts_allowed", 5000, "maximum times the fuse device can be mounted")
+	runCmd.Flags().StringVar(&device, "device", "fuse", "enable fuse or block device plugin")
+}
 
-	log.Println("Starting FS watcher.")
-	watcher, err := newFSWatcher(pluginapi.DevicePluginPath)
-	if err != nil {
-		log.Println("Failed to created FS watcher.")
-		os.Exit(1)
-	}
-	defer watcher.Close()
+var runCmd = &cobra.Command{
+	Use: "run [--fuse_mounts_allowed | --device ]",
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Println("Starting")
+		defer func() { log.Println("Stopped:") }()
 
-	log.Println("Starting OS watcher.")
-	sigs := newOSWatcher(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		log.Println("Starting FS watcher.")
+		watcher, err := newFSWatcher(pluginapi.DevicePluginPath)
+		if err != nil {
+			log.Println("Failed to created FS watcher.")
+			os.Exit(1)
+		}
+		defer watcher.Close()
 
-	restart := true
-	var devicePlugin plugins.DevicePlugin
+		log.Println("Starting OS watcher.")
+		sigs := newOSWatcher(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-L:
-	for {
-		if restart {
-			if devicePlugin != nil {
-				devicePlugin.Stop()
-			}
+		restart := true
+		var devicePlugin plugins.DevicePlugin
 
-			if device == "fuse" {
-				devicePlugin = plugins.NewFuseDevicePlugin(mountsAllowed)
-			} else {
-				devicePlugin, err = plugins.NewBlockDevicePlugin()
-				if err != nil {
-					log.Fatalln(err)
+	L:
+		for {
+			if restart {
+				if devicePlugin != nil {
+					devicePlugin.Stop()
+				}
+
+				if device == "fuse" {
+					devicePlugin = plugins.NewFuseDevicePlugin(mountsAllowed)
+				} else {
+					devicePlugin, err = plugins.NewBlockDevicePlugin()
+					if err != nil {
+						log.Fatalln(err)
+					}
+				}
+
+				if err := devicePlugin.Serve(); err != nil {
+					log.Println("Could not contact Kubelet, retrying. Did you enable the device plugin feature gate?")
+				} else {
+					restart = false
 				}
 			}
 
-			if err := devicePlugin.Serve(); err != nil {
-				log.Println("Could not contact Kubelet, retrying. Did you enable the device plugin feature gate?")
-			} else {
-				restart = false
+			select {
+			case event := <-watcher.Events:
+				if event.Name == pluginapi.KubeletSocket && event.Op&fsnotify.Create == fsnotify.Create {
+					log.Printf("inotify: %s created, restarting.", pluginapi.KubeletSocket)
+					restart = true
+				}
+
+			case err := <-watcher.Errors:
+				log.Printf("inotify: %s", err)
+
+			case s := <-sigs:
+				switch s {
+				case syscall.SIGHUP:
+					log.Println("Received SIGHUP, restarting.")
+					restart = true
+				default:
+					log.Printf("Received signal \"%v\", shutting down.", s)
+					devicePlugin.Stop()
+					break L
+				}
 			}
 		}
+	},
+}
 
-		select {
-		case event := <-watcher.Events:
-			if event.Name == pluginapi.KubeletSocket && event.Op&fsnotify.Create == fsnotify.Create {
-				log.Printf("inotify: %s created, restarting.", pluginapi.KubeletSocket)
-				restart = true
-			}
-
-		case err := <-watcher.Errors:
-			log.Printf("inotify: %s", err)
-
-		case s := <-sigs:
-			switch s {
-			case syscall.SIGHUP:
-				log.Println("Received SIGHUP, restarting.")
-				restart = true
-			default:
-				log.Printf("Received signal \"%v\", shutting down.", s)
-				devicePlugin.Stop()
-				break L
-			}
-		}
-	}
+func main() {
+	cobra.CheckErr(rootCmd.Execute())
 }

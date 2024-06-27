@@ -19,7 +19,7 @@ spec:
         - image: zwwhdls/hdls-device-plugin:v0.1
           imagePullPolicy: Always
           name: hdls-device-plugin
-          command: ["node-device-plugin", "--fuse_mounts_allowed", "5000"]
+          command: ["node-device-plugin", "run", "--fuse_mounts_allowed", "5000"]
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
