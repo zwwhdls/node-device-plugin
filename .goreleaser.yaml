@@ -19,31 +19,32 @@ before:
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
+  - REVISIONDATE={{ .Env.REVISIONDATE }}
 
 builds:
   - id: plugin-darwin-amd64
-    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
     main: .
     goos:
       - darwin
     goarch:
       - amd64
   - id: plugin-darwin-arm64
-    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
     main: .
     goos:
       - darwin
     goarch:
       - arm64
   - id: plugin-linux-amd64
-    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
     main: .
     goos:
       - linux
     goarch:
       - amd64
   - id: plugin-linux-arm64
-    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}}
+    ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
     main: .
     goos:
       - linux

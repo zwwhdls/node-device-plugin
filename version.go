@@ -11,14 +11,16 @@ import (
 var (
 	gitTag    string
 	gitCommit string
+	buildDate string
 )
 
 type Version struct {
-	Major   int    `json:"major"`
-	Minor   int    `json:"minor"`
-	Patch   int    `json:"patch"`
-	Release string `json:"release"`
-	Git     string `json:"git"`
+	Major     int    `json:"major"`
+	Minor     int    `json:"minor"`
+	Patch     int    `json:"patch"`
+	Release   string `json:"release"`
+	Git       string `json:"git"`
+	BuildDate string `json:"build_date"`
 }
 
 var versionCmd = &cobra.Command{
@@ -37,7 +39,7 @@ func (v Version) Version() string {
 	if v.Release != "" {
 		releaseInfo = "-" + v.Release
 	}
-	return fmt.Sprintf("v%d.%d.%d%s", v.Major, v.Minor, v.Patch, releaseInfo)
+	return fmt.Sprintf("v%d.%d.%d%s, date:%s", v.Major, v.Minor, v.Patch, releaseInfo, v.BuildDate)
 }
 
 func VersionInfo() Version {
@@ -67,5 +69,6 @@ func VersionInfo() Version {
 	}
 
 	versionInfo.Git = gitCommit
+	versionInfo.BuildDate = buildDate
 	return versionInfo
 }
