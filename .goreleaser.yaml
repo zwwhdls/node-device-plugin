@@ -24,28 +24,28 @@ env:
 builds:
   - id: plugin-darwin-amd64
     ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
-    main: .
+    main: ./cmd
     goos:
       - darwin
     goarch:
       - amd64
   - id: plugin-darwin-arm64
     ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
-    main: .
+    main: ./cmd
     goos:
       - darwin
     goarch:
       - arm64
   - id: plugin-linux-amd64
     ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
-    main: .
+    main: ./cmd
     goos:
       - linux
     goarch:
       - amd64
   - id: plugin-linux-arm64
     ldflags: -s -w -X main.gitCommit={{.ShortCommit}} -X main.gitTag={{.Version}} -X main.buildDate={{.Env.REVISIONDATE}}
-    main: .
+    main: ./cmd
     goos:
       - linux
     goarch:
