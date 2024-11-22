@@ -16,7 +16,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-        - image: zwwhdls/hdls-device-plugin:v0.1
+        - image: registry.cn-hangzhou.aliyuncs.com/hdls/node-device-plugin:v1
           imagePullPolicy: Always
           name: hdls-device-plugin
           command: ["node-device-plugin", "run", "--fuse_mounts_allowed", "5000"]
