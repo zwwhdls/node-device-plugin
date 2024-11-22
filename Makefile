@@ -26,7 +26,7 @@ IMAGE?=zwwhdls/node-device-plugin
 .PHONY: build
 build:
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/node-device-plugin
+	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/node-device-plugin ./cmd/
 
 # Build docker image
 .PHONY: image-dev
